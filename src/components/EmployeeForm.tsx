@@ -24,22 +24,22 @@ const EmployeeForm = ({ onSubmit }: EmployeeFormProps) => {
   });
 
   const validarIndicativo = (numero) => {
-  // Indicativos comunes (puedes agregar más según necesites)
-  const indicativosValidos = [
-    /^1\d{10}$/,      // USA/Canadá: 1 + 10 dígitos
-    /^52\d{10}$/,     // México: 52 + 10 dígitos
-    /^57\d{10}$/,     // Colombia: 57 + 10 dígitos
-    /^54\d{10}$/,     // Argentina: 54 + 10 dígitos
-    /^51\d{9}$/,      // Perú: 51 + 9 dígitos
-    /^56\d{9}$/,      // Chile: 56 + 9 dígitos
-    /^34\d{9}$/,      // España: 34 + 9 dígitos
-    /^593\d{9}$/,     // Ecuador: 593 + 9 dígitos
-    /^58\d{10}$/,     // Venezuela: 58 + 10 dígitos
-    /^507\d{8}$/,     // Panamá: 507 + 8 dígitos
-  ];
-  
-  return indicativosValidos.some(regex => regex.test(numero));
-};
+    // Indicativos comunes (puedes agregar más según necesites)
+    const indicativosValidos = [
+      /^1\d{10}$/,      // USA/Canadá: 1 + 10 dígitos
+      /^52\d{10}$/,     // México: 52 + 10 dígitos
+      /^57\d{10}$/,     // Colombia: 57 + 10 dígitos
+      /^54\d{10}$/,     // Argentina: 54 + 10 dígitos
+      /^51\d{9}$/,      // Perú: 51 + 9 dígitos
+      /^56\d{9}$/,      // Chile: 56 + 9 dígitos
+      /^34\d{9}$/,      // España: 34 + 9 dígitos
+      /^593\d{9}$/,     // Ecuador: 593 + 9 dígitos
+      /^58\d{10}$/,     // Venezuela: 58 + 10 dígitos
+      /^507\d{8}$/,     // Panamá: 507 + 8 dígitos
+    ];
+
+    return indicativosValidos.some(regex => regex.test(numero));
+  };
 
   const handleChange = (field: keyof EmployeeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -93,31 +93,18 @@ const EmployeeForm = ({ onSubmit }: EmployeeFormProps) => {
                   <SelectValue placeholder="Seleccione un proyecto" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SUMAPAZGICA OP VIAL">SUMAPAZGICA OP VIAL</SelectItem>
-                  <SelectItem value="RUTA AL SUR OP VIAL">RUTA AL SUR OP VIAL</SelectItem>
-                  <SelectItem value="VINUS OP VIAL">VINUS OP VIAL</SelectItem>
                   <SelectItem value="ACCENORTE">ACCENORTE</SelectItem>
-                  <SelectItem value="FRIGORINUS VIGILANCIA">FRIGORINUS VIGILANCIA</SelectItem>
-                  <SelectItem value="MINEROS LA MARIA VIGILANCIA">MINEROS LA MARIA VIGILANCIA</SelectItem>
-                  <SelectItem value="APP GICA (VIGILANCIA)">APP GICA (VIGILANCIA)</SelectItem>
-                  <SelectItem value="D5 EL FARO 118 VIGILANCIA">D5 EL FARO 118 VIGILANCIA</SelectItem>
-                  <SelectItem value="VINUS - VIGILANCIA">VINUS - VIGILANCIA</SelectItem>
-                  <SelectItem value="RUTA AL SUR - VIGILANCIA">RUTA AL SUR - VIGILANCIA</SelectItem>
-                  <SelectItem value="RUTAS DEL VALLE - VIGILANCIA">RUTAS DEL VALLE - VIGILANCIA</SelectItem>
-                  <SelectItem value="ACCENORTE - VIGILANCIA">ACCENORTE - VIGILANCIA</SelectItem>
-                  <SelectItem value="CONSORCIO PEAJES 2526 - VIGILANCIA">CONSORCIO PEAJES 2526 - VIGILANCIA</SelectItem>
-                  <SelectItem value="CONSORCIO PEAJES 2526 - PLANTA">CONSORCIO PEAJES 2526 - PLANTA</SelectItem>
-                  <SelectItem value="RUTA AL SUR - RECOLECTOR TEMPORADA">RUTA AL SUR - RECOLECTOR TEMPORADA</SelectItem>
-                  <SelectItem value="RUTAS DEL VALLE - RECOLECTOR TEMPORADA">RUTAS DEL VALLE - RECOLECTOR TEMPORADA</SelectItem>
-                  <SelectItem value="GICA - RECOLECTOR TEMPORADA">GICA - RECOLECTOR TEMPORADA</SelectItem>
-                  <SelectItem value="CONSORCIO PEAJES 2526 - CANGUROS">CONSORCIO PEAJES 2526 - CANGUROS</SelectItem>
-                  <SelectItem value="RUTA AL SUR PLANTA">RUTA AL SUR PLANTA</SelectItem>
-                  <SelectItem value="RUTAS DEL VALLE PLANTA">RUTAS DEL VALLE PLANTA</SelectItem>
-                  <SelectItem value="RUTAS DEL VALLE - OP VIAL">RUTAS DEL VALLE - OP VIAL</SelectItem>
-                  <SelectItem value="GICA PLANTA">GICA PLANTA</SelectItem>
-                  <SelectItem value="VINUS PLANTA">VINUS PLANTA</SelectItem>
-                  <SelectItem value="ADMINISTRACION">ADMINISTRACION</SelectItem>
-                  <SelectItem value="TOLIS">TOLIS</SelectItem>
+                  <SelectItem value="RUTAS DEL VALLE">RUTAS DEL VALLE</SelectItem>
+                  <SelectItem value="VINUS">VINUS</SelectItem>
+                  <SelectItem value="GICA">GICA</SelectItem>
+                  <SelectItem value="V40">V40</SelectItem>
+                  <SelectItem value="CPC256">CPC256</SelectItem>
+                  <SelectItem value="RUTA AL SUR">RUTA AL SUR</SelectItem>
+                  <SelectItem value="CPC256 CONT">CPC256 CONT</SelectItem>
+                  <SelectItem value="RUTA AL SUR CONT">RUTA AL SUR CONT</SelectItem>
+                  <SelectItem value="RUTAS DEL VALLE CONT">RUTAS DEL VALLE CONT</SelectItem>
+                  <SelectItem value="VINUS CONT">VINUS CONT</SelectItem>
+                  <SelectItem value="GICA CONT">GICA CONT</SelectItem>
                 </SelectContent>
               </Select>
             </div>
