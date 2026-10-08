@@ -10,7 +10,7 @@ version: "3.8"
 
 services:
   backend:
-    image: ghcr.io/jhamf-group-sas/data-delight-backend:prod-latest
+    image: ghcr.io/jhamf-group-sas/data-delight-backend:prod-5c661fd
     environment:
       - DB_HOST=${DB_HOST:-mysql}
       - DB_PORT=${DB_PORT:-3306}
@@ -49,7 +49,7 @@ services:
         - traefik.http.services.registros-backend.loadbalancer.server.port=3001
 
   frontend:
-    image: ghcr.io/jhamf-group-sas/data-delight-frontend:prod-latest
+    image: ghcr.io/jhamf-group-sas/data-delight-frontend:prod-5c661fd
     networks:
       - jhamfstack
     deploy:
