@@ -1,0 +1,91 @@
+# Docker Swarm stack for data-delight (stack name: data-delight).
+#
+# - NO secrets in this file. Sensitive values are ${VAR} placeholders and are
+#   set as stack environment variables in Portainer.
+# - Swarm `docker stack deploy` substitutes ${VAR} from the deploying
+#   environment (Portainer stack env vars).
+# - The `image:` lines are rewritten by CI (.github/workflows/deploy-production.yml)
+#   to the immutable tag prod-<sha>. Keep the line format unchanged.
+version: "3.8"
+
+services:
+  backend:
+    image: ghcr.io/jhamf-group-sas/data-delight-backend:prod-latest
+    environment:
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-registros_regency}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - PROTECTED_USERNAMES=${PROTECTED_USERNAMES:-}
+    networks:
+      - jhamfstack
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      # stop-first: the old task stops before the new one starts, so there is a
+      # short downtime window (seconds) on each deploy (see docs/DEPLOY.md).
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        order: stop-first
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.registros-backend.rule=Host(`registros.regency.jhamf.com`) && PathPrefix(`/api`)
+        - traefik.http.routers.registros-backend.entrypoints=websecure
+        - traefik.http.routers.registros-backend.tls=true
+        - traefik.http.routers.registros-backend.tls.certresolver=letsencryptresolver
+        - traefik.http.services.registros-backend.loadbalancer.server.port=3001
+
+  frontend:
+    image: ghcr.io/jhamf-group-sas/data-delight-frontend:prod-latest
+    networks:
+      - jhamfstack
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          # nginx serving static files. The previous limit was 1G because the
+          # app was built at boot; no longer needed.
+          cpus: '1'
+          memory: 256M
+        reservations:
+          memory: 64M
+      restart_policy:
+        condition: any
+        delay: 5s
+      # stop-first: short downtime window on each deploy (see docs/DEPLOY.md).
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        order: stop-first
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.registros-frontend.rule=Host(`registros.regency.jhamf.com`)
+        - traefik.http.routers.registros-frontend.entrypoints=websecure
+        - traefik.http.routers.registros-frontend.tls=true
+        - traefik.http.routers.registros-frontend.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.registros-frontend-http.rule=Host(`registros.regency.jhamf.com`)
+        - traefik.http.routers.registros-frontend-http.entrypoints=web
+        - traefik.http.routers.registros-frontend-http.middlewares=redirect-to-https
+        - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+        - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+        - traefik.http.services.registros-frontend.loadbalancer.server.port=80
+
+networks:
+  jhamfstack:
+    external: true
