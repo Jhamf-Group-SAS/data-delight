@@ -46,3 +46,10 @@ LICENSE
 Dockerfile
 docker-compose.yml
 .dockerignore
+
+# Local-only content (feature notes, nested duplicate checkout, env files)
+odd
+data-delight
+.env
+.env.*
+!.env.example
