@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { Lock, User, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
+import { saveSession } from "@/lib/session";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -24,11 +25,7 @@ const Login = () => {
       const result = await api.login(username, password);
 
       if (result.ok && result.token && result.user) {
-        localStorage.setItem("token",      result.token);
-        localStorage.setItem("username",   result.user.username);
-        localStorage.setItem("userRol",    result.user.rol);
-        localStorage.setItem("userId",     String(result.user.id));
-        localStorage.setItem("userNombre", result.user.nombre);
+        saveSession(result.token, result.user);
 
         toast.success(`Bienvenido, ${result.user.nombre}`);
         navigate("/dashboard");

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Proyecto } from "@/types/employee";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { LogoutButton } from "@/components/LogoutButton";
 import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -186,6 +187,7 @@ const AdminProyectos = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">Volver</span>
           </button>
+          <LogoutButton />
         </div>
       </header>
 

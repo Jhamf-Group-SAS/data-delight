@@ -28,7 +28,7 @@ function renderDashboard() {
 
 describe("Index — /admin/registros discoverability (sdd-verify WARNING fix)", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    window.sessionStorage.clear();
     vi.mocked(api.getRegistros).mockResolvedValue({
       data: [],
       pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
@@ -37,8 +37,8 @@ describe("Index — /admin/registros discoverability (sdd-verify WARNING fix)", 
   });
 
   it("shows a visible Registros nav link for an authenticated operador and navigates to /admin/registros on click", async () => {
-    window.localStorage.setItem("userRol", "operador");
-    window.localStorage.setItem("userNombre", "Juan Perez");
+    window.sessionStorage.setItem("userRol", "operador");
+    window.sessionStorage.setItem("userNombre", "Juan Perez");
 
     renderDashboard();
 
@@ -52,8 +52,8 @@ describe("Index — /admin/registros discoverability (sdd-verify WARNING fix)", 
   });
 
   it("also shows the Registros nav button for an authenticated admin, alongside the existing Usuarios button", async () => {
-    window.localStorage.setItem("userRol", "admin");
-    window.localStorage.setItem("userNombre", "Ana Admin");
+    window.sessionStorage.setItem("userRol", "admin");
+    window.sessionStorage.setItem("userNombre", "Ana Admin");
 
     renderDashboard();
 

@@ -9,6 +9,7 @@ import { AuditTimeline } from "@/components/admin/AuditTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { LogoutButton } from "@/components/LogoutButton";
 
 /**
  * `/admin/registros/:id` — detail + audited status-correction dialog +
@@ -70,9 +71,10 @@ const AdminRegistroDetail = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">Volver</span>
           </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground">
+          <h1 className="flex-1 text-2xl md:text-3xl font-bold text-primary-foreground">
             Detalle de registro {id}
           </h1>
+          <LogoutButton />
         </div>
       </header>
 

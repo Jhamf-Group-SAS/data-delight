@@ -7,15 +7,17 @@ import DataTable from "@/components/DataTable";
 import { toast } from "sonner";
 import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { api } from "@/lib/api";
+import { LogoutButton } from "@/components/LogoutButton";
+import { getSessionItem, setSessionItem, removeSessionItem } from "@/lib/session";
 import { Users, ListFilter, FolderKanban } from "lucide-react";
 
 // Cache temporal de registros pendientes (aún no enviados a BD)
-const PENDING_KEY = "pending_employee_data";
+const PENDING_KEY = "pending_employee_data" as const;
 
 const Index = () => {
   const navigate  = useNavigate();
-  const userRol   = localStorage.getItem("userRol") || "operador";
-  const userNombre = localStorage.getItem("userNombre") || "";
+  const userRol   = getSessionItem("userRol") || "operador";
+  const userNombre = getSessionItem("userNombre") || "";
 
   // Registros persistidos en BD (historial)
   const [savedEmployees, setSavedEmployees] = useState<Employee[]>([]);
@@ -24,7 +26,7 @@ const Index = () => {
   // Registros pendientes (solo en UI, aún no en BD)
   const [pendingEmployees, setPendingEmployees] = useState<Employee[]>(() => {
     try {
-      const saved = localStorage.getItem(PENDING_KEY);
+      const saved = getSessionItem(PENDING_KEY);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -35,12 +37,12 @@ const Index = () => {
 
   const generateId = () => Math.random().toString(36).substring(2, 11);
 
-  // Persistir pendientes en localStorage
+  // Persistir pendientes en sessionStorage (por pestaña)
   useEffect(() => {
     if (pendingEmployees.length > 0) {
-      localStorage.setItem(PENDING_KEY, JSON.stringify(pendingEmployees));
+      setSessionItem(PENDING_KEY, JSON.stringify(pendingEmployees));
     } else {
-      localStorage.removeItem(PENDING_KEY);
+      removeSessionItem(PENDING_KEY);
     }
   }, [pendingEmployees]);
 
@@ -155,17 +157,6 @@ const Index = () => {
     }
   };
 
-  // ── Logout ──────────────────────────────────────────────────
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    localStorage.removeItem("userRol");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userNombre");
-    localStorage.removeItem(PENDING_KEY);
-    window.location.href = "/";
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -218,17 +209,7 @@ const Index = () => {
 
             <ChangeOwnPasswordButton />
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/20"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" x2="9" y1="12" y2="12" />
-              </svg>
-              <span className="hidden md:inline">Cerrar Sesión</span>
-            </button>
+            <LogoutButton />
           </div>
         </div>
       </header>

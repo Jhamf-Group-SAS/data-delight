@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminUser } from "@/types/employee";
-import { api, clearSession } from "@/lib/api";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { UsuarioPasswordDialog } from "@/components/admin/UsuarioPasswordDialog";
@@ -23,6 +23,9 @@ import {
 import { UsuarioEditDialog } from "@/components/admin/UsuarioEditDialog";
 import { UsuarioEstadoDialog } from "@/components/admin/UsuarioEstadoDialog";
 import { UsuarioAuditDialog } from "@/components/admin/UsuarioAuditDialog";
+import { LogoutButton } from "@/components/LogoutButton";
+import { clearSession, getSessionItem } from "@/lib/session";
+import { userErrorMessage } from "@/lib/userErrors";
 import { UserPlus, ArrowLeft, Shield, Users, Pencil, Power, History, ListFilter, FolderKanban, KeyRound } from "lucide-react";
 
 const AdminUsers = () => {
@@ -43,7 +46,9 @@ const AdminUsers = () => {
   });
   const [formLoading, setFormLoading] = useState(false);
 
-  const currentUserId = Number(localStorage.getItem("userId"));
+  const currentUserId = Number(getSessionItem("userId"));
+  // Protected accounts can only be modified by themselves.
+  const isLocked = (u: AdminUser) => u.protegido === true && u.id !== currentUserId;
 
   const usuariosQuery = useQuery({
     queryKey: ["usuarios"],
@@ -62,7 +67,7 @@ const AdminUsers = () => {
       api.updateUsuarioAdmin(id, payload),
     onSuccess: (result, { id }) => {
       if (!result.ok) {
-        toast.error(result.error || "No se pudo actualizar el nombre");
+        toast.error(userErrorMessage(result.error, "No se pudo actualizar el nombre"));
         return;
       }
       toast.success("Nombre actualizado y auditado");
@@ -76,7 +81,7 @@ const AdminUsers = () => {
       api.updateUsuarioAdmin(id, payload),
     onSuccess: (result, { id }) => {
       if (!result.ok) {
-        toast.error(result.error || "No se pudo actualizar el rol");
+        toast.error(userErrorMessage(result.error, "No se pudo actualizar el rol"));
         return;
       }
       toast.success("Rol actualizado y auditado");
@@ -90,7 +95,7 @@ const AdminUsers = () => {
       api.changeUsuarioEstadoAdmin(id, payload),
     onSuccess: (result, { id }) => {
       if (!result.ok) {
-        toast.error(result.error || "No se pudo actualizar el estado");
+        toast.error(userErrorMessage(result.error, "No se pudo actualizar el estado"));
         return;
       }
       toast.success("Estado actualizado y auditado");
@@ -187,6 +192,7 @@ const AdminUsers = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">Volver</span>
           </button>
+          <LogoutButton />
         </div>
       </header>
 
@@ -261,19 +267,23 @@ const AdminUsers = () => {
                             <Button
                               size="icon"
                               variant="ghost"
-                              title="Editar usuario"
+                              disabled={isLocked(u)}
+                              title={isLocked(u) ? "Usuario protegido" : "Editar usuario"}
                               onClick={() => setEditTarget(u)}
+                              className="disabled:opacity-30"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
-                              disabled={u.id === currentUserId}
+                              disabled={u.id === currentUserId || isLocked(u)}
                               title={
                                 u.id === currentUserId
                                   ? "No podés desactivarte a vos mismo"
-                                  : u.activo
+                                  : isLocked(u)
+                                    ? "Usuario protegido"
+                                    : u.activo
                                     ? "Desactivar usuario"
                                     : "Reactivar usuario"
                               }
@@ -285,8 +295,10 @@ const AdminUsers = () => {
                             <Button
                               size="icon"
                               variant="ghost"
-                              title="Cambiar contraseña"
+                              disabled={isLocked(u)}
+                              title={isLocked(u) ? "Usuario protegido" : "Cambiar contraseña"}
                               onClick={() => setPasswordTarget(u)}
+                              className="disabled:opacity-30"
                             >
                               <KeyRound className="h-4 w-4" />
                             </Button>
