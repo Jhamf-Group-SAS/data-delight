@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   rol        ENUM('admin','operador') NOT NULL DEFAULT 'operador',
   activo     TINYINT(1)   NOT NULL DEFAULT 1,
   created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  password_changed_at DATETIME NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_usuarios_username (username)
 );

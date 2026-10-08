@@ -21,6 +21,28 @@ const authHeaders = () => ({
   Authorization: `Bearer ${getToken()}`,
 });
 
+const SESSION_KEYS = ["token", "username", "userRol", "userId", "userNombre", "pending_employee_data"];
+
+/** Removes every session key (same set the dashboard logout clears). */
+export const clearSession = () => {
+  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
+/**
+ * `fetch` for authenticated calls. A 401 means the session is gone (expired,
+ * invalidated by a password change, or the user was deactivated), so clear it
+ * and send the user back to the login page. The login call uses plain `fetch`
+ * because its own 401 (bad credentials) must reach the form.
+ */
+const apiFetch = async (input: string, init?: RequestInit): Promise<Response> => {
+  const response = await fetch(input, init);
+  if (response.status === 401) {
+    clearSession();
+    if (window.location.pathname !== "/") window.location.href = "/";
+  }
+  return response;
+};
+
 // ─── API ──────────────────────────────────────────────────────
 export const api = {
   // ── Auth ────────────────────────────────────────────────────
@@ -34,16 +56,31 @@ export const api = {
   },
 
   async getMe(): Promise<{ ok: boolean; user?: { id: number; username: string; nombre: string; rol: string } }> {
-    const response = await fetch(`${API_URL}/api/auth/me`, {
+    const response = await apiFetch(`${API_URL}/api/auth/me`, {
       headers: authHeaders(),
     });
     return response.json();
   },
 
+  /** Self-service password change. Stores the fresh token the server returns. */
+  async changeOwnPassword(payload: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ ok: boolean; error?: string }> {
+    const response = await apiFetch(`${API_URL}/api/auth/change-password`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const json = await response.json();
+    if (json.ok && json.token) localStorage.setItem("token", json.token);
+    return { ok: Boolean(json.ok), error: json.error };
+  },
+
   // ── Registros ────────────────────────────────────────────────
   async getRegistros(page = 1, limit = 10): Promise<{ data: Employee[]; pagination: Pagination }> {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/api/registros?page=${page}&limit=${limit}`,
         { headers: authHeaders() }
       );
@@ -60,7 +97,7 @@ export const api = {
 
   async getAllRegistros(): Promise<Employee[]> {
     try {
-      const response = await fetch(`${API_URL}/api/registros?all=true`, {
+      const response = await apiFetch(`${API_URL}/api/registros?all=true`, {
         headers: authHeaders(),
       });
       const json = await response.json();
@@ -104,7 +141,7 @@ export const api = {
     params.set("page", String(filters.page));
     params.set("pageSize", String(filters.pageSize));
 
-    const response = await fetch(`${API_URL}/api/registros?${params.toString()}`, {
+    const response = await apiFetch(`${API_URL}/api/registros?${params.toString()}`, {
       headers: authHeaders(),
     });
     return response.json();
@@ -113,7 +150,7 @@ export const api = {
   async getRegistroDetail(
     id: string | number
   ): Promise<{ ok: boolean; data?: RegistroRow; error?: string }> {
-    const response = await fetch(`${API_URL}/api/registros/${id}`, {
+    const response = await apiFetch(`${API_URL}/api/registros/${id}`, {
       headers: authHeaders(),
     });
     return response.json();
@@ -123,7 +160,7 @@ export const api = {
     id: string | number,
     payload: { fromStatus: string; toStatus: string; reason: string }
   ): Promise<{ ok: boolean; status?: string; auditId?: number; error?: string }> {
-    const response = await fetch(`${API_URL}/api/registros/${id}/status`, {
+    const response = await apiFetch(`${API_URL}/api/registros/${id}/status`, {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify(payload),
@@ -134,7 +171,7 @@ export const api = {
   async getRegistroAudit(
     id: string | number
   ): Promise<{ ok: boolean; data: AuditLogRow[] }> {
-    const response = await fetch(`${API_URL}/api/registros/${id}/audit`, {
+    const response = await apiFetch(`${API_URL}/api/registros/${id}/audit`, {
       headers: authHeaders(),
     });
     return response.json();
@@ -142,7 +179,7 @@ export const api = {
 
   async saveRegistro(empleado: Omit<Employee, "id" | "createdAt" | "usuarioNombre">): Promise<{ ok: boolean; id_registro?: number }> {
     try {
-      const response = await fetch(`${API_URL}/api/registros`, {
+      const response = await apiFetch(`${API_URL}/api/registros`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
@@ -177,7 +214,7 @@ export const api = {
 
   async deleteRegistro(id: number): Promise<{ ok: boolean }> {
     try {
-      const response = await fetch(`${API_URL}/api/registros/${id}`, {
+      const response = await apiFetch(`${API_URL}/api/registros/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -190,7 +227,7 @@ export const api = {
 
   async clearRegistros(): Promise<{ ok: boolean }> {
     try {
-      const response = await fetch(`${API_URL}/api/registros`, {
+      const response = await apiFetch(`${API_URL}/api/registros`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -204,7 +241,7 @@ export const api = {
   // ── Admin — usuarios ─────────────────────────────────────────
   async getUsuarios(): Promise<AdminUser[]> {
     try {
-      const response = await fetch(`${API_URL}/api/admin/usuarios`, {
+      const response = await apiFetch(`${API_URL}/api/admin/usuarios`, {
         headers: authHeaders(),
       });
       const json = await response.json();
@@ -217,7 +254,7 @@ export const api = {
 
   async createUsuario(data: { username: string; password: string; nombre: string; rol: string }): Promise<{ ok: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_URL}/api/admin/usuarios`, {
+      const response = await apiFetch(`${API_URL}/api/admin/usuarios`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -236,7 +273,7 @@ export const api = {
   // this change; left for a future explicit re-exposure decision.
   async deleteUsuario(id: number): Promise<{ ok: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_URL}/api/admin/usuarios/${id}`, {
+      const response = await apiFetch(`${API_URL}/api/admin/usuarios/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -252,7 +289,7 @@ export const api = {
     id: number,
     payload: { nombre?: string; rol?: string; reason: string }
   ): Promise<{ ok: boolean; auditId?: number; error?: string }> {
-    const response = await fetch(`${API_URL}/api/admin/usuarios/${id}`, {
+    const response = await apiFetch(`${API_URL}/api/admin/usuarios/${id}`, {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify(payload),
@@ -264,7 +301,19 @@ export const api = {
     id: number,
     payload: { activo: boolean; reason: string }
   ): Promise<{ ok: boolean; activo?: boolean; auditId?: number; error?: string }> {
-    const response = await fetch(`${API_URL}/api/admin/usuarios/${id}/estado`, {
+    const response = await apiFetch(`${API_URL}/api/admin/usuarios/${id}/estado`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return response.json();
+  },
+
+  async resetUsuarioPasswordAdmin(
+    id: number,
+    payload: { password?: string; generate?: boolean; reason: string }
+  ): Promise<{ ok: boolean; password?: string; auditId?: number; error?: string }> {
+    const response = await apiFetch(`${API_URL}/api/admin/usuarios/${id}/password`, {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify(payload),
@@ -273,7 +322,7 @@ export const api = {
   },
 
   async getUsuarioAudit(id: number): Promise<{ ok: boolean; data: AuditLogRow[] }> {
-    const response = await fetch(`${API_URL}/api/admin/usuarios/${id}/audit`, {
+    const response = await apiFetch(`${API_URL}/api/admin/usuarios/${id}/audit`, {
       headers: authHeaders(),
     });
     return response.json();
@@ -282,7 +331,7 @@ export const api = {
   // ── Admin — proyectos ─────────────────────────────────────────
   async getProyectos(): Promise<Proyecto[]> {
     try {
-      const response = await fetch(`${API_URL}/api/proyectos`, {
+      const response = await apiFetch(`${API_URL}/api/proyectos`, {
         headers: authHeaders(),
       });
       const json = await response.json();
@@ -297,7 +346,7 @@ export const api = {
     nombre: string,
     teamSlug: string
   ): Promise<{ ok: boolean; id?: number; nombre?: string; teamSlug?: string; error?: string }> {
-    const response = await fetch(`${API_URL}/api/proyectos`, {
+    const response = await apiFetch(`${API_URL}/api/proyectos`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ nombre, teamSlug }),
@@ -309,7 +358,7 @@ export const api = {
     id: number,
     data: { nombre: string; reason: string; teamSlug: string }
   ): Promise<{ ok: boolean; nombre?: string; teamSlug?: string; auditId?: number; error?: string }> {
-    const response = await fetch(`${API_URL}/api/proyectos/${id}`, {
+    const response = await apiFetch(`${API_URL}/api/proyectos/${id}`, {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify(data),
@@ -318,7 +367,7 @@ export const api = {
   },
 
   async deleteProyecto(id: number, data: { reason: string }): Promise<{ ok: boolean; error?: string }> {
-    const response = await fetch(`${API_URL}/api/proyectos/${id}`, {
+    const response = await apiFetch(`${API_URL}/api/proyectos/${id}`, {
       method: "DELETE",
       headers: authHeaders(),
       body: JSON.stringify(data),
