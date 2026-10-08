@@ -23,6 +23,8 @@ import {
   deleteProyectoGuarded,
 } from "./lib/proyectosService.js";
 import { loadConfig, ConfigError } from "./lib/config.js";
+import { resetUsuarioPassword, changeOwnPassword } from "./lib/passwordService.js";
+import { checkSessionValidity } from "./lib/sessionValidity.js";
 
 const app = express();
 app.use(cors());
@@ -58,13 +60,20 @@ try {
   throw err;
 }
 
+const signToken = (user) =>
+  jwt.sign(
+    { id: user.id, username: user.username, nombre: user.nombre, rol: user.rol },
+    JWT_SECRET,
+    { expiresIn: "8h" } // jwt adds `iat` automatically
+  );
+
 // ─── Middlewares ──────────────────────────────────────────────
 
 /**
  * Verifica el JWT en el header Authorization: Bearer <token>
  * Inyecta req.user = { id, username, rol }
  */
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -72,13 +81,27 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ ok: false, error: "Token requerido" });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, JWT_SECRET);
   } catch {
     return res.status(403).json({ ok: false, error: "Token inválido o expirado" });
   }
+
+  try {
+    // Rejects deleted/deactivated users and tokens issued before the last
+    // password change (lib/sessionValidity.js).
+    const session = await checkSessionValidity(pool, decoded);
+    if (!session.ok) {
+      return res.status(401).json({ ok: false, error: session.error });
+    }
+  } catch (error) {
+    console.error("❌ Error validando sesión:", error);
+    return res.status(500).json({ ok: false, error: "Error en el servidor" });
+  }
+
+  req.user = decoded;
+  next();
 };
 
 /**
@@ -128,17 +151,34 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ ok: false, error: attempt.error });
     }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, nombre: user.nombre, rol: user.rol },
-      JWT_SECRET,
-      { expiresIn: "8h" }
-    );
+    const token = signToken(user);
 
     console.log(`✅ Login: ${user.username} (${user.rol})`);
     res.json({ ok: true, token, user: { id: user.id, username: user.username, nombre: user.nombre, rol: user.rol } });
   } catch (error) {
     console.error("❌ Error login:", error);
     res.status(500).json({ ok: false, error: "Error en el servidor" });
+  }
+});
+
+/** POST /api/auth/change-password — cambia la contraseña propia; devuelve un token nuevo */
+app.post("/api/auth/change-password", authenticateToken, async (req, res) => {
+  try {
+    const result = await changeOwnPassword(pool, {
+      actor: req.user,
+      currentPassword: req.body?.currentPassword,
+      newPassword: req.body?.newPassword,
+    });
+    res.set("Cache-Control", "no-store");
+    if (result.httpStatus !== 200) {
+      return res.status(result.httpStatus).json(result.body);
+    }
+    console.log(`✅ Contraseña propia cambiada — usuario: ${req.user.username}`);
+    // The old token is now invalidated (password_changed_at), so hand back a fresh one.
+    res.json({ ok: true, token: signToken(req.user) });
+  } catch (error) {
+    console.error("❌ Error cambiando contraseña:", error.message);
+    res.status(500).json({ ok: false, error: "Error cambiando contraseña" });
   }
 });
 
@@ -388,6 +428,27 @@ app.patch("/api/admin/usuarios/:id/estado", authenticateToken, async (req, res) 
   }
 });
 
+/** PATCH /api/admin/usuarios/:id/password — admin resetea/genera contraseña. Body: { password | generate, reason } */
+app.patch("/api/admin/usuarios/:id/password", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { password, generate, reason } = req.body;
+    const result = await resetUsuarioPassword(pool, {
+      actor: req.user,
+      id: req.params.id,
+      password,
+      generate,
+      reason,
+    });
+    if (result.httpStatus === 200) {
+      console.log(`✅ Contraseña de usuario ${req.params.id} restablecida — solicitado por: ${req.user.username}`);
+    }
+    res.set("Cache-Control", "no-store").status(result.httpStatus).json(result.body);
+  } catch (error) {
+    console.error("❌ Error restableciendo contraseña:", error.message);
+    res.status(500).json({ ok: false, error: "Error restableciendo contraseña" });
+  }
+});
+
 /** GET /api/admin/usuarios/:id/audit — historial de auditoría del usuario */
 app.get("/api/admin/usuarios/:id/audit", authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -483,8 +544,28 @@ app.delete("/api/proyectos/:id", authenticateToken, requireAdmin, async (req, re
   }
 });
 
+// ─── Migración de arranque (idempotente) ─────────────────────
+// El deploy solo reinicia el contenedor, así que la columna se asegura aquí.
+// Equivalente a migration_password_changed_at.sql.
+async function ensurePasswordChangedAtColumn() {
+  const [rows] = await pool.execute(
+    `SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'password_changed_at'`
+  );
+  if (rows.length === 0) {
+    await pool.execute("ALTER TABLE usuarios ADD COLUMN password_changed_at DATETIME NULL");
+    console.log("✅ Migración: columna usuarios.password_changed_at creada");
+  }
+}
+
 // ─── Servidor ─────────────────────────────────────────────────
 const PORT = 3001;
+try {
+  await ensurePasswordChangedAtColumn();
+} catch (error) {
+  console.error("FATAL: no se pudo asegurar usuarios.password_changed_at:", error.message);
+  process.exit(1);
+}
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ API escuchando en puerto ${PORT}`);
   console.log(`📊 DB_HOST: ${process.env.DB_HOST}`);
