@@ -107,7 +107,9 @@ const AdminUsers = () => {
     payload: { password?: string; generate?: boolean; reason: string }
   ) => {
     const result = await api.resetUsuarioPasswordAdmin(id, payload);
-    if (result.ok) invalidateUsuario(id);
+    // A self-reset already invalidated our token: refetching now would 401 and
+    // redirect to login before the one-time password is shown.
+    if (result.ok && id !== currentUserId) invalidateUsuario(id);
     return result;
   };
 
