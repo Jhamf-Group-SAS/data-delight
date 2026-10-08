@@ -23,6 +23,7 @@ import {
   deleteProyectoGuarded,
 } from "./lib/proyectosService.js";
 import { loadConfig, ConfigError } from "./lib/config.js";
+import { isProtected } from "./lib/protectedUsers.js";
 import { resetUsuarioPassword, changeOwnPassword } from "./lib/passwordService.js";
 import { checkSessionValidity } from "./lib/sessionValidity.js";
 
@@ -50,8 +51,9 @@ const pool = mysql.createPool({
 // only the wiring into process.exit(1) — same observable behavior as
 // before the extraction.
 let JWT_SECRET;
+let PROTECTED_USERNAMES = [];
 try {
-  ({ jwtSecret: JWT_SECRET } = loadConfig(process.env));
+  ({ jwtSecret: JWT_SECRET, protectedUsernames: PROTECTED_USERNAMES } = loadConfig(process.env));
 } catch (err) {
   if (err instanceof ConfigError) {
     console.error(`FATAL: ${err.message}`);
@@ -162,7 +164,7 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 /** POST /api/auth/change-password — cambia la contraseña propia; devuelve un token nuevo */
-app.post("/api/auth/change-password", authenticateToken, async (req, res) => {
+app.post("/api/auth/change-password", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await changeOwnPassword(pool, {
       actor: req.user,
@@ -349,7 +351,10 @@ app.get("/api/admin/usuarios", authenticateToken, requireAdmin, async (req, res)
     const [rows] = await pool.execute(
       "SELECT id, username, nombre, rol, activo, created_at FROM usuarios ORDER BY created_at DESC"
     );
-    res.json({ ok: true, data: rows });
+    res.json({
+      ok: true,
+      data: rows.map((u) => ({ ...u, protegido: isProtected(u.username, PROTECTED_USERNAMES) })),
+    });
   } catch (error) {
     console.error("❌ Error DB:", error);
     res.status(500).json({ ok: false, error: "Error obteniendo usuarios" });
@@ -401,7 +406,7 @@ app.post("/api/admin/usuarios", authenticateToken, requireAdmin, async (req, res
 app.patch("/api/admin/usuarios/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { nombre, rol, reason } = req.body;
-    const result = await updateUsuario(pool, { actor: req.user, id: req.params.id, nombre, rol, reason });
+    const result = await updateUsuario(pool, { actor: req.user, id: req.params.id, nombre, rol, reason, protectedUsernames: PROTECTED_USERNAMES });
     res.status(result.httpStatus).json(result.body);
   } catch (error) {
     console.error("❌ Error DB actualizando usuario:", error);
@@ -420,7 +425,7 @@ app.patch("/api/admin/usuarios/:id", authenticateToken, requireAdmin, async (req
 app.patch("/api/admin/usuarios/:id/estado", authenticateToken, async (req, res) => {
   try {
     const { activo, reason } = req.body;
-    const result = await changeUsuarioEstado(pool, { actor: req.user, id: req.params.id, activo, reason });
+    const result = await changeUsuarioEstado(pool, { actor: req.user, id: req.params.id, activo, reason, protectedUsernames: PROTECTED_USERNAMES });
     res.status(result.httpStatus).json(result.body);
   } catch (error) {
     console.error("❌ Error DB actualizando estado de usuario:", error);
@@ -438,6 +443,7 @@ app.patch("/api/admin/usuarios/:id/password", authenticateToken, requireAdmin, a
       password,
       generate,
       reason,
+      protectedUsernames: PROTECTED_USERNAMES,
     });
     if (result.httpStatus === 200) {
       console.log(`✅ Contraseña de usuario ${req.params.id} restablecida — solicitado por: ${req.user.username}`);
@@ -468,7 +474,7 @@ app.get("/api/admin/usuarios/:id/audit", authenticateToken, requireAdmin, async 
  */
 app.delete("/api/admin/usuarios/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = await deleteUsuarioGuarded(pool, req.user, req.params.id);
+    const result = await deleteUsuarioGuarded(pool, req.user, req.params.id, PROTECTED_USERNAMES);
     if (result.httpStatus === 200) {
       console.log(`✅ Usuario ${req.params.id} eliminado`);
     }
