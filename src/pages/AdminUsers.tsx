@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminUser } from "@/types/employee";
-import { api } from "@/lib/api";
+import { api, clearSession } from "@/lib/api";
 import { toast } from "sonner";
+import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
+import { UsuarioPasswordDialog } from "@/components/admin/UsuarioPasswordDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +23,7 @@ import {
 import { UsuarioEditDialog } from "@/components/admin/UsuarioEditDialog";
 import { UsuarioEstadoDialog } from "@/components/admin/UsuarioEstadoDialog";
 import { UsuarioAuditDialog } from "@/components/admin/UsuarioAuditDialog";
-import { UserPlus, ArrowLeft, Shield, Users, Pencil, Power, History, ListFilter, FolderKanban } from "lucide-react";
+import { UserPlus, ArrowLeft, Shield, Users, Pencil, Power, History, ListFilter, FolderKanban, KeyRound } from "lucide-react";
 
 const AdminUsers = () => {
   const navigate   = useNavigate();
@@ -30,6 +32,7 @@ const AdminUsers = () => {
   const [editTarget, setEditTarget]     = useState<AdminUser | null>(null);
   const [estadoTarget, setEstadoTarget] = useState<AdminUser | null>(null);
   const [auditTarget, setAuditTarget]   = useState<AdminUser | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
 
   // Formulario de creación
   const [form, setForm] = useState({
@@ -97,6 +100,23 @@ const AdminUsers = () => {
     onError: () => toast.error("Error de conexión"),
   });
 
+  // The dialog shows the generated/typed password once and handles its own
+  // error text, so this returns the raw result instead of toasting.
+  const handlePasswordConfirm = async (
+    id: number,
+    payload: { password?: string; generate?: boolean; reason: string }
+  ) => {
+    const result = await api.resetUsuarioPasswordAdmin(id, payload);
+    if (result.ok) invalidateUsuario(id);
+    return result;
+  };
+
+  // Resetting your own password invalidates your token (server-side).
+  const handleSelfSessionClosed = () => {
+    clearSession();
+    window.location.href = "/";
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -143,6 +163,7 @@ const AdminUsers = () => {
             </h1>
             <p className="text-primary-foreground/80">Gestión de usuarios del sistema</p>
           </div>
+          <ChangeOwnPasswordButton />
           <button
             onClick={() => navigate("/admin/registros")}
             className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/20"
@@ -258,6 +279,14 @@ const AdminUsers = () => {
                               className="disabled:opacity-30"
                             >
                               <Power className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Cambiar contraseña"
+                              onClick={() => setPasswordTarget(u)}
+                            >
+                              <KeyRound className="h-4 w-4" />
                             </Button>
                             <Button
                               size="icon"
@@ -388,6 +417,18 @@ const AdminUsers = () => {
           usuario={estadoTarget}
           isSubmitting={estadoMutation.isPending}
           onConfirm={(id, payload) => estadoMutation.mutate({ id, payload })}
+        />
+      )}
+
+      {/* Cambiar contraseña — muestra la nueva contraseña una sola vez */}
+      {passwordTarget && (
+        <UsuarioPasswordDialog
+          open={!!passwordTarget}
+          onOpenChange={(open) => !open && setPasswordTarget(null)}
+          usuario={passwordTarget}
+          isCurrentUser={passwordTarget.id === currentUserId}
+          onConfirm={handlePasswordConfirm}
+          onSelfSessionClosed={handleSelfSessionClosed}
         />
       )}
 

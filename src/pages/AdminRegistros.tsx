@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { useRegistrosFilters } from "@/hooks/useRegistrosFilters";
 import { RegistrosFilterBar } from "@/components/admin/RegistrosFilterBar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ const AdminRegistros = () => {
             </h1>
             <p className="text-primary-foreground/80">Filtrado y corrección auditada de estado</p>
           </div>
+          <ChangeOwnPasswordButton />
           <button
             onClick={() => navigate("/admin/usuarios")}
             className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/20"

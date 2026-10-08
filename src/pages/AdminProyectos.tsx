@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Proyecto } from "@/types/employee";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,6 +178,7 @@ const AdminProyectos = () => {
             </h1>
             <p className="text-primary-foreground/80">Catálogo de proyectos</p>
           </div>
+          <ChangeOwnPasswordButton />
           <button
             onClick={() => navigate("/dashboard")}
             className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/20"

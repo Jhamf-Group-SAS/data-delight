@@ -5,6 +5,7 @@ import EmployeeForm from "@/components/EmployeeForm";
 import ExcelUploader from "@/components/ExcelUploader";
 import DataTable from "@/components/DataTable";
 import { toast } from "sonner";
+import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { api } from "@/lib/api";
 import { Users, ListFilter, FolderKanban } from "lucide-react";
 
@@ -214,6 +215,8 @@ const Index = () => {
                 <span className="hidden md:inline">Proyectos</span>
               </button>
             )}
+
+            <ChangeOwnPasswordButton />
 
             <button
               onClick={handleLogout}
