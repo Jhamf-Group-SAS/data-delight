@@ -1,11 +1,15 @@
 FROM node:20-alpine
 
 WORKDIR /app
+ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
-COPY . .
+COPY server.js seed.js ./
+COPY lib ./lib
+COPY migration*.sql ./
 
 EXPOSE 3001
+USER node
 CMD ["node", "server.js"]

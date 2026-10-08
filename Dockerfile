@@ -13,6 +13,10 @@ RUN npm ci --legacy-peer-deps
 # Copiar el resto del código
 COPY . .
 
+# URL pública de la API, se incrusta en el bundle durante el build
+ARG VITE_API_URL=https://registros.regency.jhamf.com
+ENV VITE_API_URL=$VITE_API_URL
+
 # Construir la aplicación para producción
 RUN npm run build
 
