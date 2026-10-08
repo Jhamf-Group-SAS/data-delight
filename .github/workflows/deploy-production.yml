@@ -19,7 +19,33 @@ env:
   FRONTEND_IMAGE: ghcr.io/jhamf-group-sas/data-delight-frontend
 
 jobs:
+  # Nothing is built or deployed unless the same checks as ci.yml pass.
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Type check
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Syntax check backend
+        run: node --check server.js
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
