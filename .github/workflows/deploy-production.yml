@@ -66,28 +66,29 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
-      - name: Update image tags in docker-stack.yml
+      - name: Pin image tags in docker-stack.yml on main
+        # Re-applies the tag on top of the latest origin/main on every attempt
+        # instead of rebasing: back-to-back deploys rewrite the same image
+        # lines, so a rebase would conflict and skip the webhook.
         run: |
-          sed -i -E "s|^(    image: ${BACKEND_IMAGE}:).*|\1${TAG}|" docker-stack.yml
-          sed -i -E "s|^(    image: ${FRONTEND_IMAGE}:).*|\1${TAG}|" docker-stack.yml
-          grep -n "    image:" docker-stack.yml
-
-      - name: Commit and push docker-stack.yml
-        run: |
-          if git diff --quiet docker-stack.yml; then
-            echo "docker-stack.yml already at ${TAG}, nothing to commit."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docker-stack.yml
-          git commit -m "chore(deploy): actualizar imagen a ${TAG} [skip ci]"
-          for attempt in 1 2; do
-            git pull --rebase origin main
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B main origin/main
+            sed -i -E "s|^(    image: ${BACKEND_IMAGE}:).*|\1${TAG}|" docker-stack.yml
+            sed -i -E "s|^(    image: ${FRONTEND_IMAGE}:).*|\1${TAG}|" docker-stack.yml
+            grep -n "    image:" docker-stack.yml
+            if git diff --quiet docker-stack.yml; then
+              echo "docker-stack.yml already at ${TAG}, nothing to commit."
+              exit 0
+            fi
+            git add docker-stack.yml
+            git commit -m "chore(deploy): actualizar imagen a ${TAG} [skip ci]"
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "Push failed (attempt ${attempt}), retrying..."
+            echo "Push failed (attempt ${attempt}), retrying on top of the new origin/main..."
           done
           echo "::error::Could not push docker-stack.yml to main"
           exit 1
