@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { useRegistrosFilters } from "@/hooks/useRegistrosFilters";
 import { RegistrosFilterBar } from "@/components/admin/RegistrosFilterBar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { LogoutButton } from "@/components/LogoutButton";
 import { ChangeOwnPasswordButton } from "@/components/ChangeOwnPasswordDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ const AdminRegistros = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">Usuarios</span>
           </button>
+          <LogoutButton />
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { isAdminSession } from "@/lib/session";
 import {
   Dialog,
   DialogContent,
@@ -164,6 +165,8 @@ export function ChangeOwnPasswordDialog({ open, onOpenChange }: ChangeOwnPasswor
 /** Header button + dialog, for dropping next to the logout/nav buttons. */
 export function ChangeOwnPasswordButton() {
   const [open, setOpen] = useState(false);
+  // Only admins manage credentials (the endpoint is admin-only too).
+  if (!isAdminSession()) return null;
   return (
     <>
       <button

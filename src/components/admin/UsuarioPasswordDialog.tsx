@@ -43,12 +43,15 @@ interface UsuarioPasswordDialogProps {
   onSelfSessionClosed?: () => void;
 }
 
+import { PROTECTED_USER_MESSAGE } from "@/lib/userErrors";
+
 const ERROR_MESSAGES: Record<string, string> = {
   reason_required: "El motivo es obligatorio",
   password_too_short: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`,
   password_too_long: "La contraseña es demasiado larga (máximo 72 bytes)",
   not_found: "El usuario no existe",
   forbidden: "No tiene permisos para realizar esta acción",
+  protected_user: PROTECTED_USER_MESSAGE,
 };
 
 const passwordErrorMessage = (code: string | undefined, fallback: string) =>

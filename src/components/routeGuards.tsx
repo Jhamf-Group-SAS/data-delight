@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { isAuthenticated, isAdminSession } from "@/lib/session";
 
 /**
  * src/components/routeGuards.tsx — extracted from App.tsx (sdd-verify
@@ -13,8 +14,8 @@ import { Navigate } from "react-router-dom";
  */
 
 /** Verifica que haya un token JWT válido (existencia, no expiración) */
-export const isAuthenticated = () => !!localStorage.getItem("token");
-export const isAdmin = () => localStorage.getItem("userRol") === "admin";
+export { isAuthenticated };
+export const isAdmin = isAdminSession;
 
 /** Protege rutas que requieren login, sin importar el rol (admin u operador). */
 export const AuthenticatedRoute = ({ children }: { children: React.ReactNode }) => {

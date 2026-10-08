@@ -1,5 +1,6 @@
 import { Employee, AdminUser, Pagination, Proyecto } from "@/types/employee";
 import { AuditLogRow, RegistroFilters, RegistroRow } from "@/types/admin";
+import { clearSession, getToken, setSessionItem } from "@/lib/session";
 
 // ─── URL del API ──────────────────────────────────────────────
 const getApiUrl = () => {
@@ -14,19 +15,11 @@ const API_URL = getApiUrl();
 console.log("🔗 API URL configurada:", API_URL);
 
 // ─── Token helpers ────────────────────────────────────────────
-const getToken = () => localStorage.getItem("token");
 
 const authHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${getToken()}`,
 });
-
-const SESSION_KEYS = ["token", "username", "userRol", "userId", "userNombre", "pending_employee_data"];
-
-/** Removes every session key (same set the dashboard logout clears). */
-export const clearSession = () => {
-  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
-};
 
 /**
  * `fetch` for authenticated calls. A 401 means the session is gone (expired,
@@ -73,7 +66,7 @@ export const api = {
       body: JSON.stringify(payload),
     });
     const json = await response.json();
-    if (json.ok && json.token) localStorage.setItem("token", json.token);
+    if (json.ok && json.token) setSessionItem("token", json.token);
     return { ok: Boolean(json.ok), error: json.error };
   },
 

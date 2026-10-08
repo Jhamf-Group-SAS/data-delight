@@ -17,7 +17,7 @@ function renderAt(path: string, guardedElement: React.ReactNode) {
 
 describe("routeGuards", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   describe("AuthenticatedRoute", () => {
@@ -33,8 +33,8 @@ describe("routeGuards", () => {
     });
 
     it("renders the guarded content for an authenticated operador (non-admin) — the CRITICAL-1 fix", () => {
-      window.localStorage.setItem("token", "fake-jwt");
-      window.localStorage.setItem("userRol", "operador");
+      window.sessionStorage.setItem("token", "fake-jwt");
+      window.sessionStorage.setItem("userRol", "operador");
 
       renderAt(
         "/guarded",
@@ -49,8 +49,8 @@ describe("routeGuards", () => {
     });
 
     it("renders the guarded content for an authenticated admin too", () => {
-      window.localStorage.setItem("token", "fake-jwt");
-      window.localStorage.setItem("userRol", "admin");
+      window.sessionStorage.setItem("token", "fake-jwt");
+      window.sessionStorage.setItem("userRol", "admin");
 
       renderAt(
         "/guarded",
@@ -65,8 +65,8 @@ describe("routeGuards", () => {
 
   describe("AdminRoute", () => {
     it("redirects a non-admin authenticated operador to /dashboard", () => {
-      window.localStorage.setItem("token", "fake-jwt");
-      window.localStorage.setItem("userRol", "operador");
+      window.sessionStorage.setItem("token", "fake-jwt");
+      window.sessionStorage.setItem("userRol", "operador");
 
       renderAt(
         "/guarded",
@@ -80,8 +80,8 @@ describe("routeGuards", () => {
     });
 
     it("renders the guarded content for an authenticated admin", () => {
-      window.localStorage.setItem("token", "fake-jwt");
-      window.localStorage.setItem("userRol", "admin");
+      window.sessionStorage.setItem("token", "fake-jwt");
+      window.sessionStorage.setItem("userRol", "admin");
 
       renderAt(
         "/guarded",

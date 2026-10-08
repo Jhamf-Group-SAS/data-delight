@@ -31,6 +31,12 @@ Object.defineProperty(window, "localStorage", {
   value: new MemoryStorage(),
 });
 
+// Session state lives in sessionStorage (per-tab); same gap, same polyfill.
+Object.defineProperty(window, "sessionStorage", {
+  writable: true,
+  value: new MemoryStorage(),
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

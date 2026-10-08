@@ -28,6 +28,8 @@ export interface AdminUser {
   rol: 'admin' | 'operador';
   activo: number;
   created_at: string;
+  /** True for configured protected accounts (only they can modify themselves). */
+  protegido?: boolean;
 }
 
 export interface Pagination {
